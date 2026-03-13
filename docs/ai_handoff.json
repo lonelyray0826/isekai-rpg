@@ -1,0 +1,141 @@
+{
+  "document_version": "1.0",
+  "last_updated": "2026-03-13",
+  "project_name": "中世紀異世界文字RPG",
+  "current_base_version": "Beta v1.9 關閉 D20、回歸傳統 RPG 判定版",
+  "run_mode": {
+    "type": "offline_web_single_player",
+    "entry": "index.html",
+    "direct_file_open_supported": true,
+    "backend_required": false
+  },
+  "hard_constraints": [
+    "不可依賴伺服器",
+    "資料類內容優先維護於 .db",
+    "修改 .db 後需同步匯出 assets/db-cache.js",
+    "系統邏輯維持拆檔，不要回收成單一巨型檔案",
+    "zip 內必須保留 AI 接續文件並隨版本更新"
+  ],
+  "core_systems": {
+    "stats": [
+      "STR",
+      "VIT",
+      "DEX",
+      "AGI",
+      "INT",
+      "LUK"
+    ],
+    "progression": [
+      "level",
+      "experience"
+    ],
+    "skills": {
+      "attack_split": [
+        "武技",
+        "魔法"
+      ],
+      "other_types": [
+        "生活/支援",
+        "被動"
+      ],
+      "has_proficiency": true,
+      "has_evolution": true,
+      "initial_learning": "透過對應行動機率習得下位技能"
+    },
+    "combat": {
+      "enabled": true,
+      "dice_rule": "disabled_rpg_percent",
+      "enemy_status_visible": true
+    },
+    "guild": {
+      "enabled": true,
+      "commission_selection": true,
+      "monster_hunt_delivery_requires_parts": true
+    },
+    "anatomy": {
+      "enabled": true,
+      "corpse_for_biological_monsters": true,
+      "part_based_harvest": true,
+      "proficiency_affects_loot_quality": true
+    },
+    "survival": [
+      "satiety"
+    ],
+    "origin": "平民",
+    "side_jobs": [
+      "裁縫",
+      "鐵匠",
+      "廚師",
+      "農夫",
+      "獵人"
+    ]
+  },
+  "database": {
+    "source_of_truth": "data/game_content.db",
+    "frontend_cache": "assets/db-cache.js",
+    "export_tool": "tools/export_cache_from_db.py",
+    "tables": [
+      "anatomy_parts",
+      "enemies",
+      "guild_commissions",
+      "items",
+      "jobs",
+      "locations",
+      "markets",
+      "meta",
+      "npcs",
+      "periods",
+      "quests",
+      "skills",
+      "starting_state",
+      "stat_labels",
+      "weathers"
+    ]
+  },
+  "system_files": {
+    "assets/core-system.js": "核心狀態、衍生數值、等級成長",
+    "assets/skill-system.js": "技能熟練、進化、技能使用",
+    "assets/combat-system.js": "戰鬥流程與敵人/屍體處理",
+    "assets/action-system.js": "世界行動派發",
+    "assets/save-system.js": "存檔/讀檔/匯出/匯入",
+    "assets/render-system.js": "UI渲染",
+    "assets/dice-system.js": "傳統 RPG 百分比判定與命中計算",
+    "assets/guild-system.js": "公會委託",
+    "assets/anatomy-system.js": "解剖與部位掉落",
+    "assets/survival-system.js": "飽食度",
+    "assets/profession-system.js": "平民起始與副職業",
+    "assets/main.js": "初始化與事件綁定",
+    "assets/skill-discovery-system.js": "初始技能的行動式機率習得",
+    "assets/market-system.js": "市場買賣、價格計算、交易鎖定判定"
+  },
+  "content_counts": {
+    "locations": 5,
+    "npcs": 5,
+    "items": 18,
+    "skills": 20,
+    "enemies": 4,
+    "guild_commissions": 3,
+    "anatomy_parts": 7,
+    "jobs": 5,
+    "quests": 2,
+    "markets": 1
+  },
+  "starting_state_summary": {
+    "location": "emberport",
+    "gold": 55,
+    "level": 1,
+    "satiety": 78,
+    "originClass": "平民",
+    "initial_skills": "無預設基礎技能，需透過行動領悟"
+  },
+  "update_checklist": [
+    "更新 .db",
+    "重新匯出 assets/db-cache.js",
+    "必要時新增獨立系統 JS",
+    "更新 docs/AI_CONTINUATION.md",
+    "更新 docs/ai_handoff.json",
+    "重新打包 zip"
+  ],
+  "mobile_ready": true,
+  "mobile_notes": "responsive layout, main scene first on mobile, sticky top/tabs, touch-friendly controls"
+}

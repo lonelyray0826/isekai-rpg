@@ -1,0 +1,11 @@
+給新對話 AI：
+請先閱讀 `docs/AI_CONTINUATION.md` 與 `docs/ai_handoff.json`。
+本版已加入「初始技能透過行動機率習得」系統，並維持 `.db -> db-cache.js` 的離線資料流程。若要接續開發，務必先確認這兩份文件與 `assets/skill-discovery-system.js`。
+
+本版另已加入「市場買賣系統」，主檔位於 `assets/market-system.js`，資料表為 `markets`。
+
+
+本版已關閉 D20 / 龍與地下城式擲骰，改回傳統 RPG 百分比判定。
+
+
+本版補充：已調整為手機可瀏覽的響應式版面，手機會優先顯示主劇情區，再顯示狀態/任務/成長/旗標，並提供手機快捷面板。
