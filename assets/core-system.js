@@ -15,6 +15,7 @@ var els = {
   enemyPanel: $("#enemyPanel"),
   enemyStatusWrap: $("#enemyStatusWrap"),
   choicesPanel: $("#choicesPanel"),
+  choiceHotbar: $("#choiceHotbar"),
   mapPanel: $("#mapPanel"),
   martialSkillsPanel: $("#martialSkillsPanel"),
   magicSkillsPanel: $("#magicSkillsPanel"),

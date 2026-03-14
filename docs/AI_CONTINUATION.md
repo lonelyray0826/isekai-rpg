@@ -161,3 +161,10 @@
 - `START_HERE_FOR_AI.txt`
 - `docs/AI_CONTINUATION.md`
 - `docs/ai_handoff.json`
+
+
+[v2.9 update]
+- UI changed back to simpler top-message / bottom-options layout.
+- Added 1~5 quick hotkey buttons under the option list.
+- Mobile topbar is no longer sticky to prevent the screen from being covered.
+- World-view options were simplified to keep the main play loop clearer.

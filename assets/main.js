@@ -41,6 +41,16 @@ function bindUtilityPanels() {
 }
 
 function bindEvents() {
+
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target && e.target.tagName ? e.target.tagName.toLowerCase() : '');
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    if (document.body.classList.contains('modal-open')) return;
+    if (!['1','2','3','4','5'].includes(e.key)) return;
+    const btn = document.querySelector(`.choice-btn[data-choice-index="${e.key}"]`);
+    if (btn && !btn.disabled) btn.click();
+  });
+
   document.body.addEventListener('click', (e) => {
     const actionEl = e.target.closest('[data-action]');
     const battleEl = e.target.closest('[data-battle]');

@@ -40,3 +40,10 @@
 
 - 主畫面改成左側「感知與敘事」、右側「當下可做反應」
 - 場景與移動按鈕文字改成更貼近角色此刻感知的描述，不再只像抽象系統選單
+
+
+[v2.9 update]
+- UI changed back to simpler top-message / bottom-options layout.
+- Added 1~5 quick hotkey buttons under the option list.
+- Mobile topbar is no longer sticky to prevent the screen from being covered.
+- World-view options were simplified to keep the main play loop clearer.

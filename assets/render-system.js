@@ -11,14 +11,11 @@ function barHtml(label, value, max) {
 
 function renderTopStats() {
   const d = recalcDerived();
-  const held = typeof getHeldObject === 'function' ? getHeldObject() : null;
   const chips = [
     ['生命', `${state.resources.hp} / ${d.maxHp}`],
     ['體力', `${state.resources.sp} / ${d.maxSp}`],
-    ['魔力', `${state.resources.mp} / ${d.maxMp}`],
     ['飽食', `${state.resources.satiety} / ${getSatietyMax()}`],
-    ['金幣', `${state.gold}`],
-    ['手上', held ? held.name : '空手']
+    ['金幣', `${state.gold}`]
   ];
   els.topStats.innerHTML = chips.map(([label, value]) => `
     <div class="top-stat-chip">
@@ -130,37 +127,24 @@ function renderPerceptionPanel() {
   const objects = typeof getVisibleSceneObjects === 'function' ? getVisibleSceneObjects() : [];
 
   if (state.gameOver) {
-    els.perceptionPanel.innerHTML = `
-      <div class="scene-note-block">
-        <div class="scene-note-title">最後停下的地方</div>
-        <div class="scene-note-text">${state.gameOver.reason || '這次生命已經結束。'}</div>
-      </div>
-    `;
+    els.perceptionPanel.innerHTML = `<div class="scene-note-block"><div class="scene-note-title">最後停下的地方</div><div class="scene-note-text">${state.gameOver.reason || '這次生命已經結束。'}</div></div>`;
     return;
   }
 
   const lines = [];
   if (state.battle) {
     const enemy = state.battle.enemy;
-    const intent = state.battle.intent || { telegraph: `${enemy.name} 正在觀察你。` };
-    lines.push(`你眼前的敵人是【${enemy.name}】。`);
+    const intent = state.battle.intent || { telegraph: `${enemy.name} 正在盯著你。` };
+    lines.push(`你眼前是【${enemy.name}】。`);
     lines.push(intent.telegraph);
   } else {
     if (node?.summary) lines.push(node.summary);
-    if (objects.length) {
-      lines.push(`你目前看見：${objects.map((obj) => obj.title).join('、')}。`);
-    } else {
-      lines.push('你目前沒有看見明顯可直接處理的目標。');
-    }
+    if (objects.length) lines.push(`視野裡有：${objects.map((obj) => obj.title).join('、')}。`);
+    else lines.push('眼前暫時沒有明顯可處理的目標。');
   }
-  if (held) lines.push(`你手上正拿著【${held.name}】。`);
+  if (held) lines.push(`手上拿著【${held.name}】。`);
 
-  els.perceptionPanel.innerHTML = `
-    <div class="scene-note-block">
-      <div class="scene-note-title">當前視野</div>
-      <div class="scene-note-text">${lines.join('<br>')}</div>
-    </div>
-  `;
+  els.perceptionPanel.innerHTML = `<div class="scene-note-block"><div class="scene-note-text">${lines.join('<br>')}</div></div>`;
 }
 
 function renderScene() {
@@ -174,11 +158,11 @@ function renderScene() {
   const focus = typeof getSceneFocusObject === 'function' ? getSceneFocusObject() : null;
   els.locationName.textContent = loc.name;
   if (state.battle && state.battle.intent) {
-    els.locationDesc.textContent = `${loc.summary}｜你正從 ${state.battle.enemy.name} 的動作預兆判斷下一步反應。`;
+    els.locationDesc.textContent = `${loc.summary}｜你得立刻決定怎麼應對。`;
   } else if (focus) {
-    els.locationDesc.textContent = `${loc.summary}｜你已經把注意力壓在 ${focus.title} 上，接下來就是決定怎麼碰它。`;
+    els.locationDesc.textContent = `${loc.summary}｜你現在正盯著 ${focus.title}。`;
   } else {
-    els.locationDesc.textContent = `${loc.summary}｜先讓視線和身體都對準眼前的事物，再決定下一步。`;
+    els.locationDesc.textContent = `${loc.summary}｜先看清楚，再決定互動或移動。`;
   }
   els.timeWeather.textContent = `第 ${state.day} 日｜${GD.periods[state.periodIndex]}｜${GD.weathers[state.weatherIndex]}`;
 }
@@ -197,11 +181,19 @@ function decorateChoiceButtons() {
   buttons.forEach((btn, index) => {
     const oldBadge = btn.querySelector('.choice-index');
     if (oldBadge) oldBadge.remove();
+    btn.removeAttribute('data-choice-index');
+    if (index >= 5) return;
+    btn.dataset.choiceIndex = String(index + 1);
     const badge = document.createElement('span');
     badge.className = 'choice-index';
     badge.textContent = String(index + 1);
     btn.prepend(badge);
   });
+}
+
+function renderChoiceHotbar() {
+  if (!els.choiceHotbar) return;
+  els.choiceHotbar.innerHTML = '';
 }
 
 function renderGameOverChoices() {
@@ -543,6 +535,7 @@ function render() {
   renderLog();
   renderChoices();
   decorateChoiceButtons();
+  renderChoiceHotbar();
   renderEnemyStatus();
   renderMap();
   renderSkills();

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>灰燼裂隙：幼體求生 Beta v2.7 簡潔沉浸介面</title>
+  <title>灰燼裂隙：幼體求生 Beta v2.9 選項下置整合版</title>
   <link rel="stylesheet" href="assets/styles.css" />
 </head>
 <body>
@@ -11,7 +11,7 @@
     <header class="topbar panel">
       <div class="brand-wrap">
         <div class="brand-title">灰燼裂隙</div>
-        <div class="brand-subtitle">以角色眼前所見為主的重養成離線文字 RPG</div>
+        
       </div>
       <div class="top-stats" id="topStats"></div>
     </header>
@@ -31,23 +31,22 @@
 
       <section class="action-panel panel">
         <div class="panel-head-inline simple-head-inline">
-          <div class="panel-title">選項</div>
+          <div class="panel-title">選項：</div>
         </div>
         <div id="choicesPanel" class="choices-panel"></div>
       </section>
 
       <section class="utility-dock panel">
-        <div class="utility-dock-title">收納功能</div>
+        <div class="utility-dock-title">功能</div>
         <div class="utility-nav" aria-label="功能收納選單">
-          <button class="utility-btn active" type="button" data-utility-target="utility-status">狀態</button>
+          <button class="utility-btn active" type="button" data-utility-target="utility-inventory">行囊</button>
+          <button class="utility-btn" type="button" data-utility-target="utility-status">狀態</button>
           <button class="utility-btn" type="button" data-utility-target="utility-quest">任務</button>
+          <button class="utility-btn" type="button" data-utility-target="utility-skills">武學</button>
           <button class="utility-btn" type="button" data-utility-target="utility-enemy">敵情</button>
           <button class="utility-btn" type="button" data-utility-target="utility-map">地圖</button>
-          <button class="utility-btn" type="button" data-utility-target="utility-skills">技能</button>
           <button class="utility-btn" type="button" data-utility-target="utility-jobs">副職</button>
-          <button class="utility-btn" type="button" data-utility-target="utility-inventory">行囊</button>
           <button class="utility-btn" type="button" data-utility-target="utility-growth">成長</button>
-          <button class="utility-btn" type="button" data-utility-target="utility-flags">旗標</button>
           <button class="utility-btn" type="button" data-utility-target="utility-system">系統</button>
         </div>
       </section>

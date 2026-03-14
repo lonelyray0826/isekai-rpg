@@ -167,7 +167,7 @@
     return exits.map((exit) => `
       <button class="choice-btn movement" data-action="step_exit:${exit.id}">
         <span class="choice-main">移動：${exit.label}</span>
-        <span class="choice-sub">${exit.desc || '往這個方向移動，並看看會出現什麼。'}</span>
+        <span class="choice-sub">${exit.desc || '往這個方向移動，看看會出現什麼。'}</span>
       </button>
     `).join('');
   }
@@ -185,113 +185,93 @@
     if (!node) {
       const loc = getCurrentLocation();
       els.choicesPanel.innerHTML = `
-        <div class="focus-card danger-card">
-          <div class="card-title">目前視野節點遺失，已嘗試重新定位</div>
-          <div class="card-sub">你所在的位置資料暫時對不上，因此先回到可辨識的起點節點。你可以先重新整理視線，或從地圖前往其他區域。</div>
-        </div>
         <button class="choice-btn secondary" data-action="scene_recover">
-          <span class="choice-main">重新定位目前視角</span>
-          <span class="choice-sub">把視野重設到目前地區的起始節點。</span>
+          <span class="choice-main">重新定位視角</span>
+          <span class="choice-sub">把視角重設到目前地區的起始節點。</span>
         </button>
-        ${loc ? `<button class="choice-btn secondary" data-map-travel="${loc.id}"><span class="choice-main">回到【${loc.name}】入口</span><span class="choice-sub">直接用地圖移動重新進入目前區域。</span></button>` : ''}
+        ${loc ? `<button class="choice-btn secondary" data-map-travel="${loc.id}"><span class="choice-main">回到【${loc.name}】入口</span><span class="choice-sub">直接重新進入目前區域。</span></button>` : ''}
       `;
       return;
     }
 
+    const html = [];
     if (focus) {
-      const interactions = clone(focus.interactions || []);
-      const topActions = [];
-      if (held) {
-        topActions.push(`
-          <button class="choice-btn secondary" data-action="held_store">
-            <span class="choice-main">先把【${held.name}】收進行囊</span>
-            <span class="choice-sub">先把手上的重量整理好，再處理眼前這個目標。</span>
-          </button>
-        `);
-        topActions.push(`
-          <button class="choice-btn secondary" data-action="held_drop">
-            <span class="choice-main">把【${held.name}】放下</span>
-            <span class="choice-sub">讓雙手重新空出來。</span>
-          </button>
-        `);
-      }
-      els.choicesPanel.innerHTML = [
-        `<div class="focus-card"><div class="card-title">眼前目標：${focus.title}</div><div class="card-sub">${focus.summary}</div></div>`,
-        ...topActions,
-        ...interactions.map((row) => `
+      const interactions = clone(focus.interactions || []).slice(0, 4);
+      interactions.forEach((row) => {
+        html.push(`
           <button class="choice-btn" data-action="${row.id}">
             <span class="choice-main">${row.label}</span>
             <span class="choice-sub">${row.desc || '—'}</span>
           </button>
-        `),
-        `<button class="choice-btn secondary" data-action="scene_back"><span class="choice-main">返回周圍視野</span><span class="choice-sub">回到目前位置的整體視野。</span></button>`
-      ].join('');
+        `);
+      });
+      html.push(`<button class="choice-btn secondary" data-action="scene_back"><span class="choice-main">返回周圍視野</span><span class="choice-sub">回到目前位置的整體視野。</span></button>`);
+      els.choicesPanel.innerHTML = html.join('');
       return;
     }
 
-    const objects = getVisibleSceneObjects();
-    const exits = getNodeExits(node.id);
-    const html = [`<div class="focus-card"><div class="card-title">你目前所在位置：${node.title}</div><div class="card-sub">先處理眼前看見的事物，再決定是否移動。</div></div>`];
     if (held) {
       html.push(`
-        <div class="focus-card held-card">
-          <div class="card-title">你手上正拿著：${held.name}</div>
-          <div class="card-sub">手上的東西會直接改變你這一瞬間最順手的反應。</div>
-        </div>
         <button class="choice-btn secondary" data-action="held_store">
           <span class="choice-main">把【${held.name}】收進行囊</span>
-          <span class="choice-sub">讓它成為正式攜帶物品。</span>
+          <span class="choice-sub">先把手上的東西收好。</span>
         </button>
+      `);
+      html.push(`
         <button class="choice-btn secondary" data-action="held_drop">
           <span class="choice-main">把【${held.name}】放下</span>
-          <span class="choice-sub">讓雙手重新空出來。</span>
+          <span class="choice-sub">把手上的東西留在這裡。</span>
         </button>
       `);
     }
 
-    html.push(`<div class="section-mini-title">互動</div>`);
-    if (objects.length) {
-      html.push(...objects.map((obj, index) => `
+    const objects = getVisibleSceneObjects();
+    objects.slice(0, 3).forEach((obj, index) => {
+      html.push(`
         <button class="choice-btn primary-sense" data-action="scene_focus:${obj.id}">
           <span class="choice-main">${buildObjectActionLabel(obj, index)}</span>
           <span class="choice-sub">${buildObjectActionDesc(obj)}</span>
         </button>
-      `));
-    } else {
-      html.push(`<div class="focus-card"><div class="card-sub">這一瞬間，你眼前沒有特別突出的可互動目標。</div></div>`);
-    }
+      `);
+    });
 
     if (hasCorpseToDissect()) {
       const corpse = GD.enemies[state.recentCorpse.enemyId];
       html.push(`
         <button class="choice-btn danger" data-action="dissect_corpse">
-          <span class="choice-main">靠近倒在近處的 ${corpse.name} 屍體</span>
-          <span class="choice-sub">你已經能碰到牠的殘骸，接下來得決定要從哪個部位下手。</span>
+          <span class="choice-main">處理 ${corpse.name} 的屍體</span>
+          <span class="choice-sub">決定要從哪個部位下手。</span>
         </button>
       `);
-      if (typeof canDevourCorpse === 'function' && canDevourCorpse()) {
-        html.push(`
-          <button class="choice-btn danger" data-action="devour_corpse">
-            <span class="choice-main">貼上去吞食 ${corpse.name} 的殘骸</span>
-            <span class="choice-sub">史萊姆幼體能從屍體中汲取殘留能力痕跡。</span>
-          </button>
-        `);
-      }
     }
 
-    html.push(`<div class="section-mini-title">移動</div>`);
-    html.push(renderDirectionButtons(exits));
-    html.push(`
-      <button class="choice-btn secondary" data-action="scene_listen">
-        <span class="choice-main">停下來傾聽四周</span>
-        <span class="choice-sub">不急著移動，先再確認一次周遭動靜。</span>
-      </button>
-      <button class="choice-btn secondary" data-action="scene_pause">
-        <span class="choice-main">原地停住</span>
-        <span class="choice-sub">先穩住呼吸，再決定下一步。</span>
-      </button>
-    `);
-    els.choicesPanel.innerHTML = html.join('');
+    const exits = getNodeExits(node.id);
+    exits.slice(0, 2).forEach((exit) => {
+      html.push(`
+        <button class="choice-btn movement" data-action="step_exit:${exit.id}">
+          <span class="choice-main">移動：${exit.label}</span>
+          <span class="choice-sub">${exit.desc || '往這個方向移動。'}</span>
+        </button>
+      `);
+    });
+
+    if (html.length < 5) {
+      html.push(`
+        <button class="choice-btn secondary" data-action="scene_listen">
+          <span class="choice-main">停下來傾聽四周</span>
+          <span class="choice-sub">先確認周圍有沒有新的動靜。</span>
+        </button>
+      `);
+    }
+    if (html.length < 5) {
+      html.push(`
+        <button class="choice-btn secondary" data-action="scene_pause">
+          <span class="choice-main">原地停住</span>
+          <span class="choice-sub">先穩住，再決定下一步。</span>
+        </button>
+      `);
+    }
+    els.choicesPanel.innerHTML = html.slice(0, 5).join('');
   }
 
   function renderScene() {
@@ -309,9 +289,9 @@
     if (state.battle && state.battle.intent) {
       els.locationDesc.textContent = `${node?.summary || loc.summary}｜${state.battle.enemy.name} 的動作已經要成形了，你得立刻反應。`;
     } else if (focus) {
-      els.locationDesc.textContent = `${node?.summary || loc.summary}｜你的注意力現在壓在 ${focus.title} 上，接下來就是決定怎麼碰它。`;
+      els.locationDesc.textContent = `${node?.summary || loc.summary}｜你現在正盯著 ${focus.title}，接下來要決定怎麼做。`;
     } else {
-      els.locationDesc.textContent = `${node?.summary || loc.summary}｜先看清、聽清，再決定要互動還是移動。`;
+      els.locationDesc.textContent = `${node?.summary || loc.summary}｜先看清楚，再決定要互動還是移動。`;
     }
     els.timeWeather.textContent = `第 ${state.day} 日｜${GD.periods[state.periodIndex]}｜${GD.weathers[state.weatherIndex]}`;
   }
