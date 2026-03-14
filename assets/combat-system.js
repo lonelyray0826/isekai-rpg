@@ -1,7 +1,7 @@
 // Combat system: battles, traditional RPG hit checks, corpses, battle outcomes
 function startBattle(enemyId, battleTag = '') {
   const enemyData = GD.enemies[enemyId];
-  if (!enemyData) return;
+  if (!enemyData || state.gameOver) return;
   state.battle = {
     enemyId,
     enemy: {
@@ -13,10 +13,16 @@ function startBattle(enemyId, battleTag = '') {
     turn: 1,
     tag: battleTag,
     playerGuard: false,
+    playerReaction: null,
+    interrupted: false,
+    intent: null,
     firstAidUsed: false
   };
   setUiMode(null);
+  if (state.ui) state.ui.sceneFocus = null;
+  if (typeof queueEnemyIntent === 'function') queueEnemyIntent();
   logEntry('battle', enemyData.intro);
+  if (state.battle.intent?.telegraph) logEntry('battle', `你注意到：${state.battle.intent.telegraph}`);
   autoSave();
   render();
 }
@@ -44,6 +50,82 @@ function playerTakeDamage(amount, kind = 'physical') {
   if (hasLearnedSkill('tough_body')) gainSkillProficiency('tough_body', Math.min(95, Math.max(40, Math.floor(final * 1.2))), '承受傷害');
   if (typeof triggerSkillLearning === 'function') triggerSkillLearning('take_damage', { label: '承受傷害', success: final >= 8, flatBonus: Math.floor(final / 6) });
   return final;
+}
+
+
+function triggerGameOver(reason = '你死亡了。') {
+  const loc = getCurrentLocation();
+  state.battle = null;
+  state.gameOver = {
+    reason,
+    day: state.day,
+    level: state.level,
+    raceName: state.raceName,
+    birthOriginName: state.birthOriginName,
+    locationId: state.location,
+    locationName: loc?.name || state.location
+  };
+  setUiMode('game_over');
+  if (state.ui) state.ui.sceneFocus = null;
+  localStorage.removeItem(GD.meta.saveKey);
+  logEntry('battle', reason);
+  logEntry('system', '這次生命已經結束。本機存檔已清除，你必須重新開局。');
+  render();
+  return true;
+}
+
+function getEnemyTurnContext() {
+  const intent = state.battle?.intent || { style: 'physical', preferredReactions: [], damageMult: 1, hitBonus: 0, telegraph: '' };
+  const preferred = new Set(intent.preferredReactions || []);
+  const reaction = state.battle?.playerReaction || null;
+  const result = {
+    intent,
+    reaction,
+    magic: intent.style === 'magic',
+    hitBonus: intent.hitBonus || 0,
+    damageMult: intent.damageMult || 1,
+    canceled: false,
+    dodgeFlavor: false
+  };
+  if (reaction === 'guard') {
+    state.battle.playerGuard = true;
+    result.hitBonus += preferred.has('guard') ? -14 : -6;
+    result.damageMult *= preferred.has('guard') ? 0.58 : 0.76;
+  }
+  if (reaction === 'dodge') {
+    result.hitBonus += preferred.has('dodge') ? -18 : -8;
+    result.damageMult *= preferred.has('dodge') ? 0.7 : 0.88;
+    result.dodgeFlavor = true;
+  }
+  if (reaction === 'counter') {
+    result.hitBonus += preferred.has('counter') ? -10 : -3;
+    result.damageMult *= 0.92;
+  }
+  if (reaction === 'interrupt' && state.battle?.interrupted && intent.style === 'magic') {
+    result.canceled = true;
+  }
+  return result;
+}
+
+function maybeInterruptIntent(skill = 'attack', bonus = 0) {
+  if (!state.battle?.intent || state.battle.intent.style !== 'magic') return false;
+  const rate = clamp(24 + getFinalStat('DEX') + Math.floor(getFinalStat('INT') * 0.7) + bonus, 15, 82);
+  if (chance(rate)) {
+    state.battle.interrupted = true;
+    logEntry('battle', `你成功打亂了對方的蓄勢節奏（中斷率 ${rate}%）。`);
+    return true;
+  }
+  logEntry('system', `你試圖在對方完成動作前干擾牠，但沒能完全打斷（中斷率 ${rate}%）。`);
+  return false;
+}
+
+function finishEnemyPhase() {
+  if (!state.battle) return;
+  state.battle.playerGuard = false;
+  state.battle.playerReaction = null;
+  state.battle.interrupted = false;
+  state.battle.turn += 1;
+  if (typeof queueEnemyIntent === 'function') queueEnemyIntent();
 }
 
 function registerCorpse(enemyId) {
@@ -81,6 +163,9 @@ function checkBattleEnd() {
     });
     registerCommissionKill(enemy.id);
     registerCorpse(enemy.id);
+    if (canDevourCorpse && canDevourCorpse() && enemy.bodyType === 'biological') {
+      logEntry('system', `史萊姆本能在催促你吞食 ${enemy.name} 的殘骸，以吸收其中殘留的能力痕跡。`);
+    }
     if (typeof triggerSkillLearning === 'function') {
       if (enemy.bodyType === 'biological') triggerSkillLearning('biological_hunt', { label: enemy.name, success: true, flatBonus: 3 });
       triggerSkillLearning('martial_victory', { label: `${enemy.name} 戰鬥勝利`, success: true, flatBonus: 2 });
@@ -101,25 +186,13 @@ function checkBattleEnd() {
     return true;
   }
   if (state.resources.hp <= 0) {
-    const loss = Math.min(20, state.gold);
-    state.gold -= loss;
-    state.location = 'emberport';
-    state.battle = null;
-    const d = recalcDerived();
-    state.resources.hp = Math.floor(d.maxHp * 0.6);
-    state.resources.sp = Math.floor(d.maxSp * 0.5);
-    state.resources.mp = Math.floor(d.maxMp * 0.5);
-    setUiMode(null);
-    logEntry('battle', `你在戰鬥中倒下，被路過的巡路者救回餘燼港。遺失 ${loss} 金幣。`);
-    autoSave();
-    render();
-    return true;
+    return triggerGameOver(`你在與 ${state.battle.enemy.name} 的戰鬥中倒下了。`) || true;
   }
   return false;
 }
 
 function enemyTurn() {
-  if (!state.battle) return;
+  if (!state.battle || state.gameOver) return;
   const enemy = state.battle.enemy;
   const d = recalcDerived();
 
@@ -131,26 +204,40 @@ function enemyTurn() {
     if (checkBattleEnd()) return;
   }
 
-  const isMagic = enemy.matk > 0 && chance(35);
-  const roll = enemyAttackRoll({ enemy, magic: isMagic, label: `${enemy.name}${isMagic ? '法術' : '攻擊'}` });
+  const ctx = getEnemyTurnContext();
+  if (ctx.canceled) {
+    logEntry('battle', `${enemy.name} 原本準備好的動作被你硬生生打斷了。`);
+    finishEnemyPhase();
+    autoSave();
+    render();
+    return;
+  }
+
+  const roll = enemyAttackRoll({
+    enemy,
+    magic: ctx.magic,
+    label: `${enemy.name}${ctx.magic ? '蓄勢異能' : '攻擊'}`,
+    bonus: ctx.hitBonus
+  });
   if (!roll.hit) {
-    logEntry('battle', `${enemy.name} 的攻勢被你避開了。`);
-    state.battle.playerGuard = false;
+    logEntry('battle', ctx.dodgeFlavor ? `你順著 ${enemy.name} 的動作空隙滑開，避過了這一擊。` : `${enemy.name} 的攻勢被你避開了。`);
+    finishEnemyPhase();
+    autoSave();
     render();
     return;
   }
 
   let damage;
-  if (isMagic) {
-    damage = Math.max(1, Math.floor(enemy.matk - d.mdef * 0.45 + rand(0, 4)));
+  if (ctx.magic) {
+    damage = Math.max(1, Math.floor((enemy.matk - d.mdef * 0.45 + rand(0, 4)) * ctx.damageMult));
     if (roll.crit) damage = Math.floor(damage * 1.5);
     damage = playerTakeDamage(damage, 'magic');
-    logEntry('battle', `${enemy.name} 以異界能量轟擊你，造成 ${damage} 點魔法傷害。`);
+    logEntry('battle', `${enemy.name} 釋放出已經成形的異界能量，造成 ${damage} 點魔法傷害。`);
   } else {
-    damage = Math.max(1, Math.floor(enemy.atk - d.pdef * 0.5 + rand(0, 5)));
+    damage = Math.max(1, Math.floor((enemy.atk - d.pdef * 0.5 + rand(0, 5)) * ctx.damageMult));
     if (roll.crit) damage = Math.floor(damage * 1.5);
     damage = playerTakeDamage(damage, 'physical');
-    logEntry('battle', `${enemy.name} 對你造成 ${damage} 點物理傷害。`);
+    logEntry('battle', `${enemy.name} 的動作落到你身上，造成 ${damage} 點物理傷害。`);
   }
 
   if (enemy.id === 'rift_beast' && chance(25)) {
@@ -158,33 +245,52 @@ function enemyTurn() {
     state.resources.sp -= spLoss;
     logEntry('battle', `裂隙獸的扭曲吼聲干擾了你的步伐，額外失去 ${spLoss} 點體力。`);
   }
-  state.battle.playerGuard = false;
+  finishEnemyPhase();
   checkBattleEnd();
   autoSave();
   render();
 }
 
-function battleBasicAttack() {
-  if (!state.battle) return;
+function battleBasicAttack(mode = 'attack') {
+  if (!state.battle || state.gameOver) return;
   const enemy = state.battle.enemy;
-  const roll = playerAttackRoll({ label: '普通攻擊', enemy, main: 'STR', sub: 'DEX', bonus: 0 });
+  const intent = state.battle.intent || { preferredReactions: [], style: 'physical' };
+  const preferred = new Set(intent.preferredReactions || []);
+  let bonus = 0;
+  let mult = 1;
+  let label = '普通攻擊';
+  state.battle.playerReaction = mode;
+
+  if (mode === 'counter') {
+    label = '看準破綻的反擊';
+    bonus += preferred.has('counter') ? 3 : 1;
+    mult *= preferred.has('counter') ? 1.22 : 1.08;
+  }
+  if (mode === 'attack') {
+    label = '搶先攻擊';
+    bonus += intent.style === 'magic' ? 1 : 0;
+  }
+
+  const roll = playerAttackRoll({ label, enemy, main: 'STR', sub: 'DEX', bonus });
   if (!roll.hit) {
-    if (typeof triggerSkillLearning === 'function') triggerSkillLearning('basic_attack', { label: '普通攻擊', success: false, flatBonus: 1 });
-    logEntry('battle', '你的普通攻擊落空了。');
+    if (typeof triggerSkillLearning === 'function') triggerSkillLearning('basic_attack', { label, success: false, flatBonus: 1 });
+    logEntry('battle', `${label}落空了。`);
     enemyTurn();
     return;
   }
-  let damage = calcPhysicalDamage(1, getProfessionEffects().martialDamageFlat || 0);
+  let damage = Math.floor(calcPhysicalDamage(mult, getProfessionEffects().martialDamageFlat || 0) * mult);
   if (roll.crit || chance(recalcDerived().cri)) {
     damage = Math.floor(damage * 1.5);
     logEntry('battle', '你打出了一記暴擊。');
   }
   enemy.hp -= damage;
+  if (mode === 'counter') logEntry('battle', `你等到 ${enemy.name} 靠近才還手，造成 ${damage} 點傷害。`);
+  else logEntry('battle', `你以${label}對 ${enemy.name} 造成 ${damage} 點傷害。`);
+  if (intent.style === 'magic') maybeInterruptIntent('attack', mode === 'counter' ? 12 : 6);
   recordActivity('martialSkillUses', 1);
   recordActivity('smithProgress', 1);
   if (getCurrentJobId() === 'blacksmith') gainJobExp('blacksmith', 10, '鍛鍊武技架式');
-  if (typeof triggerSkillLearning === 'function') triggerSkillLearning('basic_attack', { label: '普通攻擊', success: true, flatBonus: enemy.bodyType === 'biological' ? 2 : 0 });
-  logEntry('battle', `你以普通攻擊對 ${enemy.name} 造成 ${damage} 點傷害。`);
+  if (typeof triggerSkillLearning === 'function') triggerSkillLearning('basic_attack', { label, success: true, flatBonus: enemy.bodyType === 'biological' ? 2 : 0 });
   if (checkBattleEnd()) return;
   enemyTurn();
 }
@@ -336,6 +442,7 @@ function useSkillInBattle(skillId) {
     if (hasLearnedSkill(skillId)) gainSkillProficiency(skillId, 120, '戰鬥治療');
   }
 
+  if (state.battle?.intent?.style === 'magic' && skill.type === 'active' && skill.school !== 'support') maybeInterruptIntent(skillId, skill.school === 'martial' ? 8 : 4);
   if (checkBattleEnd()) return;
   enemyTurn();
 }
@@ -358,10 +465,37 @@ function fleeBattle() {
 
 function guardBattle() {
   if (!state.battle) return;
+  state.battle.playerReaction = 'guard';
   state.battle.playerGuard = true;
-  logEntry('battle', '你穩住架勢，準備承受下一輪衝擊。');
+  logEntry('battle', '你穩住架勢，準備硬接這一下。');
   enemyTurn();
 }
+
+function dodgeBattle() {
+  if (!state.battle) return;
+  state.battle.playerReaction = 'dodge';
+  logEntry('battle', '你先把重心放低，準備順著對方動作橫移閃開。');
+  enemyTurn();
+}
+
+function interruptBattle() {
+  if (!state.battle) return;
+  state.battle.playerReaction = 'interrupt';
+  const enemy = state.battle.enemy;
+  const roll = playerAttackRoll({ label: '打斷動作', enemy, main: 'DEX', sub: 'AGI', bonus: 2 });
+  if (!roll.hit) {
+    logEntry('battle', '你試圖搶進打斷對方，卻沒能碰到要害。');
+    enemyTurn();
+    return;
+  }
+  const damage = Math.floor(calcPhysicalDamage(0.72, 0));
+  enemy.hp -= damage;
+  logEntry('battle', `你搶在對方完成動作前刺入空檔，造成 ${damage} 點傷害。`);
+  maybeInterruptIntent('interrupt', 16);
+  if (checkBattleEnd()) return;
+  enemyTurn();
+}
+
 
 function resolveBattleOutcome(enemyId) {
   if (enemyId === 'chapel_wraith' && !state.flags.chapel_clue_found) {
@@ -388,7 +522,10 @@ function resolveBattleOutcome(enemyId) {
 }
 
 function handleBattleAction(type) {
-  if (type === 'attack') battleBasicAttack();
+  if (type === 'attack') battleBasicAttack('attack');
+  if (type === 'counter') battleBasicAttack('counter');
   if (type === 'guard') guardBattle();
+  if (type === 'dodge') dodgeBattle();
+  if (type === 'interrupt') interruptBattle();
   if (type === 'flee') fleeBattle();
 }

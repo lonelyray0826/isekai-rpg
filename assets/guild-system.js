@@ -1,7 +1,8 @@
 // Guild system: commission board, acceptance, progress, turn-in
 function setUiMode(mode) {
-  if (!state.ui) state.ui = { mode: null };
+  if (!state.ui) state.ui = { mode: null, sceneFocus: null };
   state.ui.mode = mode;
+  if (mode !== null) state.ui.sceneFocus = null;
 }
 
 function ensureCommissionState(commissionId) {

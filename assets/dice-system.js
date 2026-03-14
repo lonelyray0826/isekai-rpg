@@ -90,7 +90,7 @@ function playerAttackRoll({ label, enemy, main = 'STR', sub = 'DEX', bonus = 0, 
   return { hit, crit, miss, roll, chance: hitChance, critChance, critRoll };
 }
 
-function enemyAttackRoll({ enemy, magic = false, label = null }) {
+function enemyAttackRoll({ enemy, magic = false, label = null, bonus = 0 }) {
   const d = recalcDerived();
   const offense = magic
     ? ((enemy.matk || 0) * 0.9 + (enemy.agi || 0) * 0.6 + 24)
@@ -98,7 +98,7 @@ function enemyAttackRoll({ enemy, magic = false, label = null }) {
   const defense = magic
     ? (d.eva * 0.35 + d.mdef * 0.95 + 18)
     : (d.eva * 0.45 + d.pdef * 0.95 + 18);
-  const hitChance = clamp(Math.round(56 + offense * 0.3 - defense * 0.24), 12, 96);
+  const hitChance = clamp(Math.round(56 + offense * 0.3 - defense * 0.24 + bonus), 8, 98);
   const roll = rollDie(100);
   const hit = roll <= hitChance;
   const critChance = clamp(Math.round(4 + (enemy.agi || 0) * 0.35 + (magic ? (enemy.matk || 0) * 0.06 : (enemy.atk || 0) * 0.06)), 3, 26);

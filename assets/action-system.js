@@ -238,6 +238,7 @@ function actionRiftHarvest() {
 }
 
 function handleAction(actionId) {
+  if (state.gameOver && actionId !== 'restart_after_death') return;
   const travelMap = {
     travel_greenwood: 'greenwood',
     travel_chapel: 'chapel',
@@ -245,6 +246,7 @@ function handleAction(actionId) {
     travel_rift: 'riftmoor',
     travel_emberport: 'emberport'
   };
+  if (actionId.startsWith('scene_focus:')) return openSceneFocus(actionId.split(':')[1]);
   if (travelMap[actionId]) {
     moveTo(travelMap[actionId]);
     return;
@@ -257,10 +259,15 @@ function handleAction(actionId) {
   if (actionId.startsWith('dissect_part:')) return dissectCorpsePart(actionId.split(':')[1]);
 
   const map = {
+    scene_back: closeSceneFocus,
+    pick_stone: pickUpStone,
+    held_store: storeHeldObject,
+    held_drop: dropHeldObject,
+    restart_after_death: newGame,
     guild_report: actionGuildReport,
     open_market: actionOpenMarket,
     market_close: closeMarket,
-    guild_close: () => { setUiMode(null); render(); },
+    guild_close: () => { setUiMode(null); if (state.ui) state.ui.sceneFocus = null; render(); },
     rest_inn: actionRestInn,
     buy_supplies: actionBuySupplies,
     cook_meal: actionCookMeal,
@@ -274,6 +281,7 @@ function handleAction(actionId) {
     rift_descend: actionRiftDescend,
     rift_harvest: actionRiftHarvest,
     dissect_corpse: openAnatomyMenu,
+    devour_corpse: devourCorpse,
     anatomy_close: closeAnatomyMenu
   };
   const fn = map[actionId];

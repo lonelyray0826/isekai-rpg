@@ -6,7 +6,7 @@ function openAnatomyMenu() {
     return;
   }
   if (!getAnatomyProfile()) {
-    logEntry('system', '你還不懂正規解剖，但可以嘗試粗略處理屍體；實作過程中有機率領悟【魔物解剖】。');
+    logEntry('system', '你還不懂正規解剖，但可以嘗試粗略處理屍體；反覆實作會累積【魔物解剖】的習得熟練。');
   }
   setUiMode('anatomy_menu');
   render();

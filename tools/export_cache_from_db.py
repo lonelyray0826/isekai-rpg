@@ -38,7 +38,10 @@ payload = {
     'guildCommissions': load_map('guild_commissions'),
     'anatomyParts': load_map('anatomy_parts'),
     'jobs': load_map('jobs') if cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='jobs'").fetchone() else {},
-    'markets': load_map('markets') if cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='markets'").fetchone() else {}
+    'markets': load_map('markets') if cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='markets'").fetchone() else {},
+    'sceneObjects': load_map('scene_objects') if cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='scene_objects'").fetchone() else {},
+    'sceneNodes': load_map('scene_nodes') if cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='scene_nodes'").fetchone() else {},
+    'sceneExits': load_map('scene_exits') if cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='scene_exits'").fetchone() else {}
 }
 
 js = (

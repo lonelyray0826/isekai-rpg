@@ -56,7 +56,8 @@ function getMarketBuyPrice(itemId, marketId = getActiveMarketId()) {
   if (!market || !item) return 0;
   const stock = getMarketStockRow(itemId, marketId);
   const base = stock?.buyPrice || item.value || 0;
-  return Math.max(1, Math.round(base * (market.buyRate || 1)));
+  const originTrade = typeof getOriginTradeModifiers === 'function' ? getOriginTradeModifiers() : { buyMult: 1 };
+  return Math.max(1, Math.round(base * (market.buyRate || 1) * (originTrade.buyMult || 1)));
 }
 
 function isCommissionLockedItem(itemId) {
@@ -76,7 +77,8 @@ function getMarketSellPrice(itemId, marketId = getActiveMarketId()) {
   if (!market || !item || !item.value) return 0;
   const byKind = market.sellRateByKind || {};
   const ratio = typeof byKind[item.kind] === 'number' ? byKind[item.kind] : (market.sellRate || 0.45);
-  return ratio <= 0 ? 0 : Math.max(1, Math.floor(item.value * ratio));
+  const originTrade = typeof getOriginTradeModifiers === 'function' ? getOriginTradeModifiers() : { sellMult: 1 };
+  return ratio <= 0 ? 0 : Math.max(1, Math.floor(item.value * ratio * (originTrade.sellMult || 1)));
 }
 
 function canSellItemInMarket(itemId, marketId = getActiveMarketId()) {

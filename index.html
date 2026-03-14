@@ -3,131 +3,160 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>灰燼裂隙：異世界旅者 Beta v1.9 Mobile Ready</title>
+  <title>灰燼裂隙：幼體求生 Beta v2.7 簡潔沉浸介面</title>
   <link rel="stylesheet" href="assets/styles.css" />
 </head>
 <body>
   <div id="app" class="app-shell">
-    <header class="topbar">
+    <header class="topbar panel">
       <div class="brand-wrap">
-        <div class="brand-title">灰燼裂隙：異世界旅者</div>
-        <div class="brand-subtitle">離線單機文字 RPG Beta v1.9 Mobile Ready</div>
+        <div class="brand-title">灰燼裂隙</div>
+        <div class="brand-subtitle">以角色眼前所見為主的重養成離線文字 RPG</div>
       </div>
       <div class="top-stats" id="topStats"></div>
     </header>
 
-    <nav class="mobile-panel-nav panel" aria-label="手機快捷面板">
-      <button class="mobile-panel-btn" data-mobile-target="statusPanelCard">狀態</button>
-      <button class="mobile-panel-btn" data-mobile-target="questPanelCard">任務</button>
-      <button class="mobile-panel-btn" data-mobile-target="growthPanelCard">成長</button>
-      <button class="mobile-panel-btn" data-mobile-target="flagPanelCard">旗標</button>
-    </nav>
-
-    <main class="layout">
-      <aside class="left-panel panel" id="statusPanelCard">
-        <div class="panel-title">旅者狀態</div>
-        <div id="statusPanel" class="status-panel"></div>
-        <div id="questPanelCard"></div>
-        <div class="panel-title spaced" id="questPanelTitle">當前任務</div>
-        <div id="questPanel" class="quest-panel"></div>
-      </aside>
-
-      <section class="center-panel">
-        <div class="scene-card panel">
-          <div class="scene-header">
-            <div>
-              <div id="locationName" class="scene-location">—</div>
-              <div id="locationDesc" class="scene-desc">—</div>
-            </div>
-            <div id="timeWeather" class="scene-meta">—</div>
+    <main class="focus-layout simple-focus-layout">
+      <section class="story-panel panel">
+        <div class="scene-header">
+          <div>
+            <div id="locationName" class="scene-location">—</div>
+            <div id="locationDesc" class="scene-desc">—</div>
           </div>
-
-          <div id="logPanel" class="log-panel"></div>
-
-          <div id="enemyStatusWrap" class="enemy-status-wrap hidden">
-            <div class="panel-title">敵方狀態</div>
-            <div id="enemyPanel"></div>
-          </div>
-
-          <div class="choice-section">
-            <div class="choice-title">可執行行動</div>
-            <div id="choicesPanel" class="choices-panel"></div>
-          </div>
+          <div id="timeWeather" class="scene-meta">—</div>
         </div>
-
-        <div class="bottom-tabs panel">
-          <div class="tab-buttons">
-            <button class="tab-btn active" data-tab="map">地圖</button>
-            <button class="tab-btn" data-tab="skills">技能</button>
-            <button class="tab-btn" data-tab="jobs">副職</button>
-            <button class="tab-btn" data-tab="inventory">行囊</button>
-            <button class="tab-btn" data-tab="system">系統</button>
-          </div>
-          <div class="tab-content-wrap">
-            <div class="tab-content active" id="tab-map">
-              <div id="mapPanel" class="grid-list"></div>
-            </div>
-            <div class="tab-content" id="tab-skills">
-              <div class="skills-columns skills-columns-4">
-                <div>
-                  <div class="section-mini-title">武技</div>
-                  <div id="martialSkillsPanel" class="card-list"></div>
-                </div>
-                <div>
-                  <div class="section-mini-title">魔法</div>
-                  <div id="magicSkillsPanel" class="card-list"></div>
-                </div>
-                <div>
-                  <div class="section-mini-title">生活／支援</div>
-                  <div id="supportSkillsPanel" class="card-list"></div>
-                </div>
-                <div>
-                  <div class="section-mini-title">被動技能</div>
-                  <div id="passiveSkillsPanel" class="card-list"></div>
-                </div>
-              </div>
-            </div>
-            <div class="tab-content" id="tab-jobs">
-              <div id="jobsPanel" class="card-list"></div>
-            </div>
-            <div class="tab-content" id="tab-inventory">
-              <div id="inventoryPanel" class="card-list"></div>
-            </div>
-            <div class="tab-content" id="tab-system">
-              <div class="system-grid">
-                <button id="saveBtn" class="system-btn">立即存檔</button>
-                <button id="loadBtn" class="system-btn">讀取存檔</button>
-                <button id="exportBtn" class="system-btn">匯出存檔</button>
-                <button id="importBtn" class="system-btn">匯入存檔</button>
-                <button id="newGameBtn" class="system-btn danger">重開新局</button>
-              </div>
-              <input id="importInput" type="file" accept="application/json" hidden />
-              <div class="system-note">
-                本版新增：餘燼港市場買賣系統，可購買補給並出售戰利品；初始技能維持以行動機率習得，再透過熟練度進化。資料類內容持續以 data/game_content.db（SQLite .db）為主來源，再匯出為 db-cache.js 供離線前端直接載入。
-              </div>
-            </div>
-          </div>
-        </div>
+        <div id="perceptionPanel" class="perception-panel"></div>
+        <div id="logPanel" class="log-panel"></div>
       </section>
 
-      <aside class="right-panel panel" id="growthPanelCard">
-        <div class="panel-title">等級成長</div>
-        <div id="growthPanel" class="growth-panel"></div>
-        <div id="flagPanelCard"></div>
-        <div class="panel-title spaced" id="flagPanelTitle">世界旗標</div>
-        <div id="flagPanel" class="flag-panel"></div>
-      </aside>
+      <section class="action-panel panel">
+        <div class="panel-head-inline simple-head-inline">
+          <div class="panel-title">選項</div>
+        </div>
+        <div id="choicesPanel" class="choices-panel"></div>
+      </section>
+
+      <section class="utility-dock panel">
+        <div class="utility-dock-title">收納功能</div>
+        <div class="utility-nav" aria-label="功能收納選單">
+          <button class="utility-btn active" type="button" data-utility-target="utility-status">狀態</button>
+          <button class="utility-btn" type="button" data-utility-target="utility-quest">任務</button>
+          <button class="utility-btn" type="button" data-utility-target="utility-enemy">敵情</button>
+          <button class="utility-btn" type="button" data-utility-target="utility-map">地圖</button>
+          <button class="utility-btn" type="button" data-utility-target="utility-skills">技能</button>
+          <button class="utility-btn" type="button" data-utility-target="utility-jobs">副職</button>
+          <button class="utility-btn" type="button" data-utility-target="utility-inventory">行囊</button>
+          <button class="utility-btn" type="button" data-utility-target="utility-growth">成長</button>
+          <button class="utility-btn" type="button" data-utility-target="utility-flags">旗標</button>
+          <button class="utility-btn" type="button" data-utility-target="utility-system">系統</button>
+        </div>
+      </section>
     </main>
+
+    <div id="utilityModal" class="utility-modal hidden" aria-hidden="true">
+      <button class="utility-modal-backdrop" type="button" data-close-utility-modal="1" aria-label="關閉功能視窗"></button>
+      <section class="utility-modal-dialog panel" role="dialog" aria-modal="true" aria-labelledby="utilityModalTitle">
+        <div class="panel-head-inline utility-modal-head">
+          <div id="utilityModalTitle" class="panel-title">角色狀態</div>
+          <button id="closeUtilityModalBtn" class="fold-btn" type="button">關閉</button>
+        </div>
+
+        <div class="utility-content-wrap">
+          <section id="utility-status" class="utility-content active">
+            <div class="section-mini-title">角色狀態</div>
+            <div id="statusPanel" class="status-panel"></div>
+          </section>
+
+          <section id="utility-quest" class="utility-content">
+            <div class="section-mini-title">任務與委託</div>
+            <div id="questPanel" class="quest-panel"></div>
+          </section>
+
+          <section id="utility-enemy" class="utility-content">
+            <div class="section-mini-title">敵方狀態</div>
+            <div id="enemyStatusWrap" class="enemy-status-wrap hidden">
+              <div id="enemyPanel"></div>
+            </div>
+            <div id="enemyEmptyHint" class="system-note">目前未進入戰鬥，這裡會在戰鬥時顯示敵方狀態與預兆。</div>
+          </section>
+
+          <section id="utility-map" class="utility-content">
+            <div class="section-mini-title">地圖</div>
+            <div id="mapPanel" class="grid-list"></div>
+          </section>
+
+          <section id="utility-skills" class="utility-content">
+            <div class="section-mini-title">技能總覽</div>
+            <div class="skills-columns skills-columns-4">
+              <div>
+                <div class="section-mini-title nested-title">武技</div>
+                <div id="martialSkillsPanel" class="card-list"></div>
+              </div>
+              <div>
+                <div class="section-mini-title nested-title">魔法</div>
+                <div id="magicSkillsPanel" class="card-list"></div>
+              </div>
+              <div>
+                <div class="section-mini-title nested-title">生活／支援</div>
+                <div id="supportSkillsPanel" class="card-list"></div>
+              </div>
+              <div>
+                <div class="section-mini-title nested-title">被動技能</div>
+                <div id="passiveSkillsPanel" class="card-list"></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="utility-jobs" class="utility-content">
+            <div class="section-mini-title">副職業</div>
+            <div id="jobsPanel" class="card-list"></div>
+          </section>
+
+          <section id="utility-inventory" class="utility-content">
+            <div class="section-mini-title">行囊</div>
+            <div id="inventoryPanel" class="card-list"></div>
+          </section>
+
+          <section id="utility-growth" class="utility-content">
+            <div class="section-mini-title">等級成長</div>
+            <div id="growthPanel" class="growth-panel"></div>
+          </section>
+
+          <section id="utility-flags" class="utility-content">
+            <div class="section-mini-title">世界旗標</div>
+            <div id="flagPanel" class="flag-panel"></div>
+          </section>
+
+          <section id="utility-system" class="utility-content">
+            <div class="section-mini-title">系統功能</div>
+            <div class="system-grid">
+              <button id="saveBtn" class="system-btn" type="button">立即存檔</button>
+              <button id="loadBtn" class="system-btn" type="button">讀取存檔</button>
+              <button id="exportBtn" class="system-btn" type="button">匯出存檔</button>
+              <button id="importBtn" class="system-btn" type="button">匯入存檔</button>
+              <button id="newGameBtn" class="system-btn danger" type="button">重開新局</button>
+            </div>
+            <input id="importInput" type="file" accept="application/json" hidden />
+            <div class="system-note">
+              功能資訊改成彈出視窗呈現，主畫面只保留上方訊息與下方行動，避免視線被分散。
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
+    
   </div>
 
   <script src="assets/db-cache.js"></script>
   <script src="assets/database.js"></script>
   <script src="assets/core-system.js"></script>
+  <script src="assets/origin-system.js"></script>
   <script src="assets/dice-system.js"></script>
   <script src="assets/survival-system.js"></script>
   <script src="assets/profession-system.js"></script>
   <script src="assets/skill-discovery-system.js"></script>
   <script src="assets/skill-system.js"></script>
+  <script src="assets/perception-system.js"></script>
   <script src="assets/guild-system.js"></script>
   <script src="assets/market-system.js"></script>
   <script src="assets/anatomy-system.js"></script>
@@ -135,26 +164,7 @@
   <script src="assets/action-system.js"></script>
   <script src="assets/save-system.js"></script>
   <script src="assets/render-system.js"></script>
+  <script src="assets/worldview-system.js"></script>
   <script src="assets/main.js"></script>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const isMobile = window.matchMedia("(max-width: 860px)");
-      document.querySelectorAll(".mobile-panel-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const targetId = btn.dataset.mobileTarget;
-          const target = document.getElementById(targetId);
-          if (!target) return;
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-      });
-
-      const setViewportHeight = () => {
-        document.documentElement.style.setProperty("--vh", `${window.innerHeight * 0.01}px`);
-      };
-      setViewportHeight();
-      window.addEventListener("resize", setViewportHeight);
-    });
-  </script>
 </body>
 </html>

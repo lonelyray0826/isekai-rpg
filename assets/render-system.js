@@ -11,18 +11,14 @@ function barHtml(label, value, max) {
 
 function renderTopStats() {
   const d = recalcDerived();
-  const need = expToNext(state.level);
-  const anatomy = getAnatomyProfile();
+  const held = typeof getHeldObject === 'function' ? getHeldObject() : null;
   const chips = [
-    ['等級', `Lv.${state.level}`],
-    ['經驗值', `${state.exp} / ${need}`],
     ['生命', `${state.resources.hp} / ${d.maxHp}`],
     ['體力', `${state.resources.sp} / ${d.maxSp}`],
     ['魔力', `${state.resources.mp} / ${d.maxMp}`],
     ['飽食', `${state.resources.satiety} / ${getSatietyMax()}`],
-    ['副職', getCurrentJobDef()?.name || '未就職'],
     ['金幣', `${state.gold}`],
-    ['解剖', anatomy ? `${anatomy.proficiency} / 1000` : '粗略處理']
+    ['手上', held ? held.name : '空手']
   ];
   els.topStats.innerHTML = chips.map(([label, value]) => `
     <div class="top-stat-chip">
@@ -34,6 +30,7 @@ function renderTopStats() {
 
 function renderStatus() {
   const d = recalcDerived();
+  const held = typeof getHeldObject === 'function' ? getHeldObject() : null;
   els.statusPanel.innerHTML = `
     <div class="info-card">
       <div class="stat-grid">
@@ -53,6 +50,11 @@ function renderStatus() {
       <div class="kv-line"><span>暴擊 / 先制</span><strong>${d.cri}% / ${d.ini}</strong></div>
       <div class="kv-line"><span>負重上限</span><strong>${d.carry}</strong></div>
       <div class="kv-line"><span>飽食狀態</span><strong>${d.satiety.label}</strong></div>
+      <div class="kv-line"><span>目前手持</span><strong>${held ? held.name : '空手'}</strong></div>
+      <div class="kv-line"><span>出生種族</span><strong>${state.raceName || '未知'}</strong></div>
+      <div class="kv-line"><span>出生環境</span><strong>${state.birthOriginName || '未知'}</strong></div>
+      <div class="kv-line"><span>成長階段</span><strong>${state.growthStage || '幼體'}</strong></div>
+      <div class="kv-line"><span>成長模式</span><strong>${typeof getGrowthModeLabel === 'function' ? getGrowthModeLabel() : '重養成'}</strong></div>
     </div>
     <div class="info-card">
       ${barHtml('生命', state.resources.hp, d.maxHp)}
@@ -90,47 +92,140 @@ function renderQuests() {
   els.questPanel.innerHTML = questCards.concat(commissionCards).join('') || `<div class="quest-card"><div class="card-sub">目前沒有追蹤中的任務。</div></div>`;
 }
 
+
+function getPerceptionSlotLabel(index) {
+  const labels = ['腳邊', '左近', '正前方', '右前方', '更遠處'];
+  return labels[index % labels.length];
+}
+
+function describeObjectPerception(obj, index) {
+  const slot = getPerceptionSlotLabel(index);
+  const verbMap = {
+    pickup: '你先注意到',
+    trail: '你看見',
+    resource: '你注意到',
+    exit: '你的視線越過去，能看見',
+    building: '你的視線落到',
+    body: '你看見',
+    corpse: '你看見',
+    sound: '你聽見'
+  };
+  return {
+    main: `【${slot}】${verbMap[obj.kind] || '你看見'}${obj.title}`,
+    sub: obj.summary || '你暫時只能先記住這個目標的位置。'
+  };
+}
+
+function describeExitPerception(exit) {
+  return {
+    main: `【${exit.direction || '前方'}】${exit.label}`,
+    sub: exit.desc || '把身體挪過去之後，視野才會刷新。'
+  };
+}
+
+function renderPerceptionPanel() {
+  if (!els.perceptionPanel) return;
+  const held = typeof getHeldObject === 'function' ? getHeldObject() : null;
+  const node = typeof getCurrentSceneNode === 'function' ? getCurrentSceneNode() : null;
+  const objects = typeof getVisibleSceneObjects === 'function' ? getVisibleSceneObjects() : [];
+
+  if (state.gameOver) {
+    els.perceptionPanel.innerHTML = `
+      <div class="scene-note-block">
+        <div class="scene-note-title">最後停下的地方</div>
+        <div class="scene-note-text">${state.gameOver.reason || '這次生命已經結束。'}</div>
+      </div>
+    `;
+    return;
+  }
+
+  const lines = [];
+  if (state.battle) {
+    const enemy = state.battle.enemy;
+    const intent = state.battle.intent || { telegraph: `${enemy.name} 正在觀察你。` };
+    lines.push(`你眼前的敵人是【${enemy.name}】。`);
+    lines.push(intent.telegraph);
+  } else {
+    if (node?.summary) lines.push(node.summary);
+    if (objects.length) {
+      lines.push(`你目前看見：${objects.map((obj) => obj.title).join('、')}。`);
+    } else {
+      lines.push('你目前沒有看見明顯可直接處理的目標。');
+    }
+  }
+  if (held) lines.push(`你手上正拿著【${held.name}】。`);
+
+  els.perceptionPanel.innerHTML = `
+    <div class="scene-note-block">
+      <div class="scene-note-title">當前視野</div>
+      <div class="scene-note-text">${lines.join('<br>')}</div>
+    </div>
+  `;
+}
+
 function renderScene() {
+  if (state.gameOver) {
+    els.locationName.textContent = '【遊戲結束】';
+    els.locationDesc.textContent = state.gameOver.reason || '這次生命已經結束，你必須重新開局。';
+    els.timeWeather.textContent = `第 ${state.gameOver.day || state.day} 日｜${state.gameOver.locationName || getCurrentLocation().name}`;
+    return;
+  }
   const loc = getCurrentLocation();
+  const focus = typeof getSceneFocusObject === 'function' ? getSceneFocusObject() : null;
   els.locationName.textContent = loc.name;
-  els.locationDesc.textContent = loc.summary;
+  if (state.battle && state.battle.intent) {
+    els.locationDesc.textContent = `${loc.summary}｜你正從 ${state.battle.enemy.name} 的動作預兆判斷下一步反應。`;
+  } else if (focus) {
+    els.locationDesc.textContent = `${loc.summary}｜你已經把注意力壓在 ${focus.title} 上，接下來就是決定怎麼碰它。`;
+  } else {
+    els.locationDesc.textContent = `${loc.summary}｜先讓視線和身體都對準眼前的事物，再決定下一步。`;
+  }
   els.timeWeather.textContent = `第 ${state.day} 日｜${GD.periods[state.periodIndex]}｜${GD.weathers[state.weatherIndex]}`;
 }
 
 function renderLog() {
-  els.logPanel.innerHTML = state.log.slice().reverse().map((entry) => `
+  const entries = [...state.log].reverse();
+  els.logPanel.innerHTML = entries.map((entry) => `
     <div class="log-entry ${entry.type}">${String(entry.text).replace(/`/g, '')}</div>
   `).join('');
+  els.logPanel.scrollTop = 0;
+}
+
+function decorateChoiceButtons() {
+  if (!els.choicesPanel) return;
+  const buttons = Array.from(els.choicesPanel.querySelectorAll('.choice-btn'));
+  buttons.forEach((btn, index) => {
+    const oldBadge = btn.querySelector('.choice-index');
+    if (oldBadge) oldBadge.remove();
+    const badge = document.createElement('span');
+    badge.className = 'choice-index';
+    badge.textContent = String(index + 1);
+    btn.prepend(badge);
+  });
+}
+
+function renderGameOverChoices() {
+  const info = state.gameOver || {};
+  els.choicesPanel.innerHTML = `
+    <div class="focus-card danger-card">
+      <div class="card-title">這次生命已經結束</div>
+      <div class="card-sub">${info.reason || '死亡使這一輪旅程終止。'}<br>種族：${info.raceName || state.raceName || '未知'}｜出身：${info.birthOriginName || state.birthOriginName || '未知'}｜等級：Lv.${info.level || state.level}</div>
+    </div>
+    <button class="choice-btn danger" data-action="restart_after_death">
+      <span class="choice-main">重新開局</span>
+      <span class="choice-sub">永久死亡已結算，本機存檔也已清除。新的生命會重新隨機誕生。</span>
+    </button>
+  `;
 }
 
 function renderChoices() {
+  if (state.gameOver) return renderGameOverChoices();
   if (state.battle) return renderBattleChoices();
   if (state.ui?.mode === 'guild_board') return renderGuildChoices();
   if (state.ui?.mode === 'market') return renderMarketChoices();
   if (state.ui?.mode === 'anatomy_menu') return renderAnatomyChoices();
-
-  const loc = getCurrentLocation();
-  const actionHtml = loc.actions.map((action) => {
-    const disabled = action.requires && action.requires.some((flag) => !state.flags[flag]);
-    return `
-      <button class="choice-btn" data-action="${action.id}" ${disabled ? 'disabled' : ''}>
-        <span class="choice-main">${action.label}</span>
-        <span class="choice-sub">${disabled ? '條件尚未達成。' : action.desc}</span>
-      </button>
-    `;
-  });
-
-  if (hasCorpseToDissect()) {
-    const corpse = GD.enemies[state.recentCorpse.enemyId];
-    const remaining = getCorpseParts().filter((part) => !state.recentCorpse.harvestedParts?.[part.id]).length;
-    actionHtml.push(`
-      <button class="choice-btn" data-action="dissect_corpse">
-        <span class="choice-main">處理 ${corpse.name} 屍體</span>
-        <span class="choice-sub">可選擇部位個別解剖。剩餘部位 ${remaining} 個，可用於委託交付與素材採取。</span>
-      </button>
-    `);
-  }
-  els.choicesPanel.innerHTML = actionHtml.join('');
+  if (typeof renderPerspectiveChoices === 'function') return renderPerspectiveChoices();
+  els.choicesPanel.innerHTML = '<div class="focus-card"><div class="card-sub">目前沒有可用行動。</div></div>';
 }
 
 function renderBattleSkillSection(title, skills) {
@@ -148,29 +243,30 @@ function renderBattleSkillSection(title, skills) {
 
 function renderBattleChoices() {
   const enemy = state.battle.enemy;
+  if (!state.battle.intent && typeof queueEnemyIntent === 'function') queueEnemyIntent();
+  const intent = state.battle.intent || { telegraph: `${enemy.name} 正盯著你。`, style: 'physical' };
   const learnedActive = Object.entries(state.skills)
     .filter(([id, s]) => s.learned && GD.skills[id].type === 'active' && GD.skills[id].useContexts.includes('battle'))
     .map(([id]) => GD.skills[id]);
   const martial = learnedActive.filter((s) => s.school === 'martial');
   const magic = learnedActive.filter((s) => s.school === 'magic');
   const support = learnedActive.filter((s) => s.school !== 'martial' && s.school !== 'magic');
+  const reactions = typeof getReactionOptionsForIntent === 'function' ? getReactionOptionsForIntent(intent) : [];
 
   els.choicesPanel.innerHTML = `
-    <button class="choice-btn" data-battle="attack">
-      <span class="choice-main">普通攻擊</span>
-      <span class="choice-sub">${hasLearnedSkill('slash') ? '視為基礎武技，依命中與閃避進行一般 RPG 判定。' : '平民起手架式。持續實戰有機率領悟武技【斬擊】。'}</span>
-    </button>
+    <div class="focus-card danger-card">
+      <div class="card-title">你看見 ${enemy.name} 正在蓄勢</div>
+      <div class="card-sub">${intent.telegraph}</div>
+    </div>
+    ${reactions.map((row) => `
+      <button class="choice-btn" data-battle="${row.id}">
+        <span class="choice-main">${row.label}</span>
+        <span class="choice-sub">${row.desc}</span>
+      </button>
+    `).join('')}
     ${renderBattleSkillSection('武技', martial)}
     ${renderBattleSkillSection('魔法', magic)}
     ${renderBattleSkillSection('生活／支援', support)}
-    <button class="choice-btn" data-battle="guard">
-      <span class="choice-main">防禦架勢</span>
-      <span class="choice-sub">減少下一輪承受的傷害。</span>
-    </button>
-    <button class="choice-btn" data-battle="flee">
-      <span class="choice-main">撤退</span>
-      <span class="choice-sub">依 AGI / LUK 進行脫戰判定。</span>
-    </button>
     <button class="choice-btn" data-item="potion" ${state.inventory.potion > 0 ? '' : 'disabled'}>
       <span class="choice-main">使用治癒藥水</span>
       <span class="choice-sub">目前持有：${state.inventory.potion || 0}</span>
@@ -180,12 +276,16 @@ function renderBattleChoices() {
 }
 
 function renderEnemyStatus() {
+  const enemyEmptyHint = document.getElementById('enemyEmptyHint');
   if (!state.battle) {
     els.enemyStatusWrap.classList.add('hidden');
     els.enemyPanel.innerHTML = `<div class="enemy-empty">目前未進入戰鬥。</div>`;
+    if (enemyEmptyHint) enemyEmptyHint.style.display = '';
     return;
   }
+  if (enemyEmptyHint) enemyEmptyHint.style.display = 'none';
   const enemy = state.battle.enemy;
+  const intent = state.battle.intent || { telegraph: '對方正觀察你的動作。', style: 'unknown' };
   const hpNow = Math.max(0, enemy.hp);
   const hpMax = Math.max(1, enemy.maxHp || 1);
   const burnTag = enemy.burning > 0 ? `<span class="tag danger">燃燒 ${enemy.burning}</span>` : `<span class="tag">狀態穩定</span>`;
@@ -197,9 +297,14 @@ function renderEnemyStatus() {
         ${burnTag}
       </div>
       <div class="card-sub">${enemy.note || enemy.intro || '敵對單位資料已顯示。'}</div>
+      <div class="focus-card compact-card">
+        <div class="card-title">可見預兆</div>
+        <div class="card-sub">${intent.telegraph}</div>
+      </div>
       ${barHtml('敵方生命', hpNow, hpMax)}
       <div class="enemy-grid">
-                <div class="enemy-kv"><span>類型</span><strong>${enemy.bodyType === 'biological' ? '生物型' : '靈體型'}</strong></div>
+        <div class="enemy-kv"><span>類型</span><strong>${enemy.bodyType === 'biological' ? '生物型' : '靈體型'}</strong></div>
+        <div class="enemy-kv"><span>即將手段</span><strong>${intent.style === 'magic' ? '魔法／異能' : '物理攻勢'}</strong></div>
         <div class="enemy-kv"><span>物攻</span><strong>${enemy.atk || 0}</strong></div>
         <div class="enemy-kv"><span>魔攻</span><strong>${enemy.matk || 0}</strong></div>
         <div class="enemy-kv"><span>物防</span><strong>${enemy.def || 0}</strong></div>
@@ -271,10 +376,10 @@ function renderSkills() {
     else supportCards.push(html);
   });
 
-  els.martialSkillsPanel.innerHTML = martialCards.join('') || `<div class="skill-card"><div class="card-sub">尚未學會武技。可先以普通攻擊實戰，機率領悟【斬擊】。</div></div>`;
-  els.magicSkillsPanel.innerHTML = magicCards.join('') || `<div class="skill-card"><div class="card-sub">尚未學會魔法。多調查符文與奧術痕跡，機率領悟【火花】。</div></div>`;
-  els.supportSkillsPanel.innerHTML = supportCards.join('') || `<div class="skill-card"><div class="card-sub">尚未學會生活／支援技能。醫療處置與解剖實作可逐步習得。</div></div>`;
-  els.passiveSkillsPanel.innerHTML = passiveCards.join('') || `<div class="skill-card"><div class="card-sub">尚未學會被動技能。旅行、受傷與生存行動中有機率覺醒。</div></div>`;
+  els.martialSkillsPanel.innerHTML = martialCards.join('') || `<div class="skill-card"><div class="card-sub">尚未學會武技。可先以普通攻擊實戰，累積【斬擊】的習得熟練。</div></div>`;
+  els.magicSkillsPanel.innerHTML = magicCards.join('') || `<div class="skill-card"><div class="card-sub">尚未學會魔法。多調查符文與奧術痕跡，逐步累積【火花】的習得熟練。</div></div>`;
+  els.supportSkillsPanel.innerHTML = supportCards.join('') || `<div class="skill-card"><div class="card-sub">尚未學會生活／支援技能。醫療處置與解剖實作可逐步達到習得門檻。</div></div>`;
+  els.passiveSkillsPanel.innerHTML = passiveCards.join('') || `<div class="skill-card"><div class="card-sub">尚未學會被動技能。旅行、受傷與生存行動會累積對應熟練。</div></div>`;
 }
 
 function renderJobs() {
@@ -284,9 +389,9 @@ function renderJobs() {
     <div class="inventory-card">
       <div class="card-title-row">
         <div class="card-title">職涯概況</div>
-        <span class="tag">起始：${state.originClass}</span>
+        <span class="tag">基底：${state.originClass}</span>
       </div>
-      <div class="card-sub">目前副職：${current ? current.name : '未就職'}｜你可以依據培養方向逐步學習生活系副職，並在已習得的副職間切換。</div>
+      <div class="card-sub">出生：${typeof getOriginSummaryText === 'function' ? getOriginSummaryText() : '未知'}｜目前副職：${current ? current.name : '未就職'}｜你可以依據培養方向逐步學習生活系副職，並在已習得的副職間切換。</div>
     </div>
   `;
   const cards = Object.values(GD.jobs || {}).map((job) => {
@@ -321,7 +426,16 @@ function renderJobs() {
 
 function renderInventory() {
   const anatomy = getAnatomyProfile();
+  const held = typeof getHeldObject === 'function' ? getHeldObject() : null;
   const infoCards = [];
+  if (held) {
+    infoCards.push(`
+      <div class="inventory-card highlight-card">
+        <div class="card-title-row"><div class="card-title">手持物</div><span class="tag">即時操作</span></div>
+        <div class="card-sub">你目前正拿著【${held.name}】。這類物件不一定先進背包，而是會先影響當下能做的反應。</div>
+      </div>
+    `);
+  }
   if (anatomy) {
     infoCards.push(`
       <div class="inventory-card">
@@ -370,8 +484,12 @@ function renderGrowth() {
       <div class="kv-line"><span>角色等級</span><strong>Lv.${state.level}</strong></div>
       <div class="kv-line"><span>當前經驗</span><strong>${state.exp} / ${need}</strong></div>
       <div class="kv-line"><span>升級尚需</span><strong>${Math.max(0, need - state.exp)}</strong></div>
+      <div class="kv-line"><span>出生種族</span><strong>${state.raceName || '未知'}</strong></div>
+      <div class="kv-line"><span>出生環境</span><strong>${state.birthOriginName || '未知'}</strong></div>
+      <div class="kv-line"><span>成長規則</span><strong>${typeof getGrowthModeLabel === 'function' ? getGrowthModeLabel() : '重養成'}</strong></div>
       <div class="kv-line"><span>可分配屬性點</span><strong>${state.statPoints}</strong></div>
       <div class="kv-line"><span>可用技能點</span><strong>${state.skillPoints}</strong></div>
+      <div class="card-meta">${typeof getGrowthRuleSummary === 'function' ? getGrowthRuleSummary() : ''}</div>
       ${barHtml('升級進度', state.exp, need)}
     </div>
     <div class="growth-card">
@@ -386,8 +504,8 @@ function renderGrowth() {
       </div>
     </div>
     <div class="growth-card">
-      <div class="section-mini-title">行動習得提示</div>
-      <div class="card-meta">${learningHints.length ? learningHints.join('<br>') : '目前所有可行動領悟的初始技能皆已習得。'}</div>
+      <div class="section-mini-title">技能習得進度</div>
+      <div class="card-meta">${learningHints.length ? learningHints.join('<br>') : '目前所有可累積習得的初階技能皆已學會。'}</div>
     </div>
   `;
 }
@@ -401,6 +519,8 @@ function renderFlags() {
     ['裂隙沼原', state.flags.rift_path_unlocked ? '已開放' : '未開放'],
     ['裂隙穩定', state.flags.rift_core_stabilized ? '已完成' : '尚未完成'],
     ['目前副職', getCurrentJobDef()?.name || '未就職'],
+    ['出生種族', state.raceName || '未知'],
+    ['出生環境', state.birthOriginName || '未知'],
     ['最近屍體', corpseText]
   ];
   els.flagPanel.innerHTML = lines.map(([k, v]) => `
@@ -409,13 +529,20 @@ function renderFlags() {
 }
 
 function render() {
+  if (!state?.gameOver && state?.resources?.hp <= 0 && typeof triggerGameOver === 'function') {
+    triggerGameOver('你因傷勢過重而失去意識，這次生命已經結束。');
+    return;
+  }
+  document.title = `灰燼裂隙｜${state?.raceName || '旅者'}｜${getCurrentLocation().name}`;
   syncQuestProgress();
   renderTopStats();
   renderStatus();
   renderQuests();
   renderScene();
+  renderPerceptionPanel();
   renderLog();
   renderChoices();
+  decorateChoiceButtons();
   renderEnemyStatus();
   renderMap();
   renderSkills();

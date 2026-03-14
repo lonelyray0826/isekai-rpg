@@ -1,13 +1,43 @@
-// Main system: tab binding, event wiring, initialization
-function bindTabs() {
-  document.querySelectorAll('.tab-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
-    });
+// Main system: utility modal binding, event wiring, initialization
+function bindUtilityPanels() {
+  const navButtons = Array.from(document.querySelectorAll('[data-utility-target]'));
+  const panels = Array.from(document.querySelectorAll('.utility-content'));
+  const modal = document.getElementById('utilityModal');
+  const modalTitle = document.getElementById('utilityModalTitle');
+  const closeBtn = document.getElementById('closeUtilityModalBtn');
+  const backdrop = document.querySelector('[data-close-utility-modal]');
+
+  const openPanel = (targetId, openModal = true) => {
+    navButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.utilityTarget === targetId));
+    panels.forEach((panel) => panel.classList.toggle('active', panel.id === targetId));
+    const activeBtn = navButtons.find((btn) => btn.dataset.utilityTarget === targetId);
+    const activePanel = panels.find((panel) => panel.id === targetId);
+    if (modalTitle) modalTitle.textContent = activeBtn ? `${activeBtn.textContent.trim()}` : (activePanel?.querySelector('.section-mini-title')?.textContent || '功能視窗');
+    if (openModal && modal) {
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('modal-open');
+    }
+  };
+
+  const closeModal = () => {
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+  };
+
+  navButtons.forEach((btn) => {
+    btn.addEventListener('click', () => openPanel(btn.dataset.utilityTarget, true));
   });
+
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (backdrop) backdrop.addEventListener('click', closeModal);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  if (navButtons[0]) openPanel(navButtons[0].dataset.utilityTarget, false);
 }
 
 function bindEvents() {
@@ -56,7 +86,7 @@ function init() {
   const loaded = loadGame(false);
   if (!loaded) newGame();
   else render();
-  bindTabs();
+  bindUtilityPanels();
   bindEvents();
 }
 

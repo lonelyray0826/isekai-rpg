@@ -11,6 +11,7 @@ var els = {
   locationDesc: $("#locationDesc"),
   timeWeather: $("#timeWeather"),
   logPanel: $("#logPanel"),
+  perceptionPanel: $("#perceptionPanel"),
   enemyPanel: $("#enemyPanel"),
   enemyStatusWrap: $("#enemyStatusWrap"),
   choicesPanel: $("#choicesPanel"),
@@ -50,10 +51,14 @@ function chance(rate) {
 }
 
 function expToNext(level) {
-  return 30 + (level - 1) * 20 + Math.pow(level - 1, 2) * 6;
+  return 45 + (level - 1) * 35 + Math.pow(level - 1, 2) * 12;
 }
 
 function getCurrentLocation() {
+  if (!GD.locations[state.location]) {
+    const fallbackId = Object.keys(GD.locations || {})[0];
+    if (fallbackId) state.location = fallbackId;
+  }
   return GD.locations[state.location];
 }
 
@@ -71,7 +76,7 @@ function hasLearnedSkill(skillId) {
 }
 
 function isSkillLatent(skillId) {
-  return !!(GD.skills[skillId] && GD.skills[skillId].learnSources && !hasLearnedSkill(skillId));
+  return !!(GD.skills[skillId] && (GD.skills[skillId].practiceSources || GD.skills[skillId].learnSources) && !hasLearnedSkill(skillId));
 }
 
 function getSkillStageInfo(prof) {
@@ -161,6 +166,21 @@ function getPassiveEffects() {
   if (hasLearnedSkill('essence_extraction')) {
     effects.anatomyBonus += 3;
     effects.rareFind += 0.08;
+  }
+
+  if (typeof getOriginPassiveEffects === 'function') {
+    const originFx = getOriginPassiveEffects();
+    effects.exploreBonus += originFx.exploreBonus || 0;
+    effects.rareFind += originFx.rareFind || 0;
+    effects.travelSpDiscount += originFx.travelSpDiscount || 0;
+    effects.evadeBonus += originFx.evadeBonus || 0;
+    effects.firstStrike += originFx.firstStrike || 0;
+    effects.relicBonus += originFx.relicBonus || 0;
+    effects.anatomyBonus += originFx.anatomyBonus || 0;
+    effects.hitBonus += originFx.hitBonus || 0;
+    effects.patkBonus += originFx.patkBonus || 0;
+    effects.matkBonus += originFx.matkBonus || 0;
+    effects.physReduction += originFx.physReduction || 0;
   }
 
   if (typeof getProfessionEffects === 'function') {
@@ -281,14 +301,16 @@ function addExp(amount, reason = '') {
   while (state.exp >= need) {
     state.exp -= need;
     state.level += 1;
-    state.statPoints += 2;
-    state.skillPoints += 1;
+    const gainedStat = state.level % 3 === 0 ? 1 : 0;
+    const gainedSkill = state.level % 5 === 0 ? 1 : 0;
+    state.statPoints += gainedStat;
+    state.skillPoints += gainedSkill;
     const d = recalcDerived();
-    state.resources.hp = d.maxHp;
-    state.resources.sp = d.maxSp;
-    state.resources.mp = d.maxMp;
+    state.resources.hp = Math.min(d.maxHp, state.resources.hp + Math.floor(d.maxHp * 0.35));
+    state.resources.sp = Math.min(d.maxSp, state.resources.sp + Math.floor(d.maxSp * 0.45));
+    state.resources.mp = Math.min(d.maxMp, state.resources.mp + Math.floor(d.maxMp * 0.35));
     leveled = true;
-    logEntry('reward', `你升到了 Lv.${state.level}。獲得屬性點 +2、技能點 +1，並完全恢復狀態。`);
+    logEntry('reward', `你升到了 Lv.${state.level}。這個世界的成長極為緩慢：本次獲得屬性點 +${gainedStat}、技能點 +${gainedSkill}，並只恢復部分狀態。`);
     need = expToNext(state.level);
   }
   if (leveled) syncQuestProgress();
@@ -301,9 +323,14 @@ function gainGold(amount) {
 
 function applyStatPoint(statKey) {
   if (state.statPoints <= 0) return;
+  if (state.stats[statKey].base >= 18) {
+    logEntry('system', `${GD.statLabels[statKey]} 已進入高值區，現版本暫不允許再用一般成長點直接提升。`);
+    render();
+    return;
+  }
   state.stats[statKey].base += 1;
   state.statPoints -= 1;
-  logEntry('system', `${GD.statLabels[statKey]} 提升 1 點。`);
+  logEntry('system', `${GD.statLabels[statKey]} 提升 1 點。這個世界的能力增長十分珍貴。`);
   autoSave();
   render();
 }
@@ -326,10 +353,10 @@ function moveTo(locationId) {
   }
   spendResource('sp', cost);
   state.location = locationId;
-  if (state.ui) state.ui.mode = null;
+  if (state.ui) { state.ui.mode = null; state.ui.sceneFocus = null; }
   advanceTime(1);
   if (hasLearnedSkill('traveler_instinct')) gainSkillProficiency('traveler_instinct', 65, `移動至 ${target.name}`);
-  if (typeof triggerSkillLearning === 'function') triggerSkillLearning('travel_move', { label: target.name });
+  if (typeof triggerSkillLearning === 'function') triggerSkillLearning('travel_move', { label: target.name, success: true });
   logEntry('system', `你抵達了 ${target.name}。旅途中消耗 ${cost} 點體力。`);
   syncQuestProgress();
   autoSave();

@@ -65,7 +65,10 @@
         guildCommissions: new EmbeddedTable('guildCommissions', normalizeTable(source.guildCommissions)),
         anatomyParts: new EmbeddedTable('anatomyParts', normalizeTable(source.anatomyParts)),
         jobs: new EmbeddedTable('jobs', normalizeTable(source.jobs)),
-        markets: new EmbeddedTable('markets', normalizeTable(source.markets))
+        markets: new EmbeddedTable('markets', normalizeTable(source.markets)),
+        sceneObjects: new EmbeddedTable('sceneObjects', normalizeTable(source.sceneObjects)),
+        sceneNodes: new EmbeddedTable('sceneNodes', normalizeTable(source.sceneNodes)),
+        sceneExits: new EmbeddedTable('sceneExits', normalizeTable(source.sceneExits))
       };
       this.api = this.createLegacyApi();
     }
@@ -100,6 +103,9 @@
         get anatomyParts() { return db.table('anatomyParts').asMap(); },
         get jobs() { return db.table('jobs').asMap(); },
         get markets() { return db.table('markets').asMap(); },
+        get sceneObjects() { return db.table('sceneObjects').asMap(); },
+        get sceneNodes() { return db.table('sceneNodes').asMap(); },
+        get sceneExits() { return db.table('sceneExits').asMap(); },
         startingState: () => db.source.startingState(),
         get periods() { return db.periods(); },
         get weathers() { return db.weathers(); },

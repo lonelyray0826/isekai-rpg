@@ -1,141 +1,101 @@
 {
-  "document_version": "1.0",
-  "last_updated": "2026-03-13",
-  "project_name": "中世紀異世界文字RPG",
-  "current_base_version": "Beta v1.9 關閉 D20、回歸傳統 RPG 判定版",
-  "run_mode": {
-    "type": "offline_web_single_player",
-    "entry": "index.html",
-    "direct_file_open_supported": true,
-    "backend_required": false
-  },
-  "hard_constraints": [
-    "不可依賴伺服器",
-    "資料類內容優先維護於 .db",
-    "修改 .db 後需同步匯出 assets/db-cache.js",
-    "系統邏輯維持拆檔，不要回收成單一巨型檔案",
-    "zip 內必須保留 AI 接續文件並隨版本更新"
-  ],
-  "core_systems": {
-    "stats": [
-      "STR",
-      "VIT",
-      "DEX",
-      "AGI",
-      "INT",
-      "LUK"
-    ],
-    "progression": [
-      "level",
-      "experience"
-    ],
-    "skills": {
-      "attack_split": [
-        "武技",
-        "魔法"
-      ],
-      "other_types": [
-        "生活/支援",
-        "被動"
-      ],
-      "has_proficiency": true,
-      "has_evolution": true,
-      "initial_learning": "透過對應行動機率習得下位技能"
-    },
-    "combat": {
-      "enabled": true,
-      "dice_rule": "disabled_rpg_percent",
-      "enemy_status_visible": true
-    },
-    "guild": {
-      "enabled": true,
-      "commission_selection": true,
-      "monster_hunt_delivery_requires_parts": true
-    },
-    "anatomy": {
-      "enabled": true,
-      "corpse_for_biological_monsters": true,
-      "part_based_harvest": true,
-      "proficiency_affects_loot_quality": true
-    },
-    "survival": [
-      "satiety"
-    ],
-    "origin": "平民",
-    "side_jobs": [
-      "裁縫",
-      "鐵匠",
-      "廚師",
-      "農夫",
-      "獵人"
-    ]
-  },
-  "database": {
-    "source_of_truth": "data/game_content.db",
+  "project_title": "灰燼裂隙：幼體求生",
+  "current_base_version": "Beta v2.7 Simple Immersive UI",
+  "runtime_type": "offline_web_singleplayer",
+  "data_source": {
+    "primary": "data/game_content.db",
     "frontend_cache": "assets/db-cache.js",
-    "export_tool": "tools/export_cache_from_db.py",
-    "tables": [
-      "anatomy_parts",
-      "enemies",
-      "guild_commissions",
-      "items",
-      "jobs",
-      "locations",
-      "markets",
-      "meta",
-      "npcs",
-      "periods",
-      "quests",
-      "skills",
-      "starting_state",
-      "stat_labels",
-      "weathers"
+    "export_tool": "tools/export_cache_from_db.py"
+  },
+  "game_direction": {
+    "world": "中世紀異世界",
+    "tone": "重養成、生存、偏魂類",
+    "growth": "能力值不輕易增加，死亡即直接結束本輪旅程",
+    "interaction": "主畫面改為左側感知與敘事、右側當下可做反應；由角色當下看見的物件或敵方預兆決定操作，不再採上下堆疊的抽象選單",
+    "starting_core": "平民基底，後續依培養方向轉職與就職"
+  },
+  "random_birth_system": {
+    "implemented": true,
+    "file": "assets/origin-system.js",
+    "races": [
+      "人類嬰兒",
+      "哥布林幼體",
+      "史萊姆幼體"
+    ],
+    "human_origins": [
+      "富人家",
+      "平民家",
+      "貧民窟"
+    ],
+    "notes": {
+      "goblin": "群居種族，與人類社會邏輯不同",
+      "slime": "非群居，可吞食屍體吸收技能痕跡"
+    }
+  },
+  "skill_rules": {
+    "lower_tier_learning": "透過對應行動累積習得熟練，達 learnThreshold 後學會",
+    "upper_tier_learning": "由已習得下位技能熟練滿值後進化",
+    "implementation_files": [
+      "assets/skill-discovery-system.js",
+      "assets/skill-system.js"
     ]
   },
-  "system_files": {
-    "assets/core-system.js": "核心狀態、衍生數值、等級成長",
-    "assets/skill-system.js": "技能熟練、進化、技能使用",
-    "assets/combat-system.js": "戰鬥流程與敵人/屍體處理",
-    "assets/action-system.js": "世界行動派發",
-    "assets/save-system.js": "存檔/讀檔/匯出/匯入",
-    "assets/render-system.js": "UI渲染",
-    "assets/dice-system.js": "傳統 RPG 百分比判定與命中計算",
-    "assets/guild-system.js": "公會委託",
-    "assets/anatomy-system.js": "解剖與部位掉落",
+  "major_system_files": {
+    "assets/core-system.js": "共用狀態、衍生能力、等級成長",
+    "assets/origin-system.js": "隨機出生、種族差異、史萊姆吞食",
+    "assets/perception-system.js": "視角驅動互動、手持物、敵方預兆",
+    "assets/skill-discovery-system.js": "技能習得熟練與門檻學習",
+    "assets/skill-system.js": "已學技能熟練與進化",
+    "assets/combat-system.js": "戰鬥、永久死亡、敵方預兆反應",
+    "assets/anatomy-system.js": "部位解剖",
     "assets/survival-system.js": "飽食度",
-    "assets/profession-system.js": "平民起始與副職業",
-    "assets/main.js": "初始化與事件綁定",
-    "assets/skill-discovery-system.js": "初始技能的行動式機率習得",
-    "assets/market-system.js": "市場買賣、價格計算、交易鎖定判定"
+    "assets/profession-system.js": "副職業",
+    "assets/guild-system.js": "公會委託",
+    "assets/market-system.js": "市場買賣",
+    "assets/render-system.js": "簡潔沉浸式上下版面 UI、敘事區、感知摘要與功能彈窗顯示",
+    "assets/save-system.js": "存檔 / 新局",
+    "assets/main.js": "初始化、收納功能切換與事件綁定"
   },
-  "content_counts": {
-    "locations": 5,
-    "npcs": 5,
-    "items": 18,
-    "skills": 20,
-    "enemies": 4,
-    "guild_commissions": 3,
-    "anatomy_parts": 7,
-    "jobs": 5,
-    "quests": 2,
-    "markets": 1
-  },
-  "starting_state_summary": {
-    "location": "emberport",
-    "gold": 55,
-    "level": 1,
-    "satiety": 78,
-    "originClass": "平民",
-    "initial_skills": "無預設基礎技能，需透過行動領悟"
-  },
-  "update_checklist": [
-    "更新 .db",
-    "重新匯出 assets/db-cache.js",
-    "必要時新增獨立系統 JS",
-    "更新 docs/AI_CONTINUATION.md",
-    "更新 docs/ai_handoff.json",
-    "重新打包 zip"
+  "current_survival_elements": [
+    "飽食度",
+    "永久死亡",
+    "升級只恢復部分狀態",
+    "場景視角驅動互動",
+    "戰鬥預兆反應制"
   ],
-  "mobile_ready": true,
-  "mobile_notes": "responsive layout, main scene first on mobile, sticky top/tabs, touch-friendly controls"
+  "current_side_jobs": [
+    "裁縫",
+    "鐵匠",
+    "廚師",
+    "農夫",
+    "獵人"
+  ],
+  "db_tables": [
+    "items",
+    "skills",
+    "enemies",
+    "locations",
+    "quests",
+    "guild_commissions",
+    "anatomy_parts",
+    "jobs",
+    "markets",
+    "scene_objects"
+  ],
+  "next_recommended_steps": [
+    "把 scene_objects 擴充到所有地點與更多連鎖互動",
+    "導入真正的人類社會 / 魔物社會視野差異",
+    "增加更多敵方預兆與對應反應窗口",
+    "幼體期專屬序章地圖",
+    "真正的成長階段系統"
+  ],
+  "version": "2.6.0",
+  "title": "灰燼裂隙：幼體求生 Beta v2.7",
+  "core_loop": "方向移動 -> 視野刷新 -> 看見物件 -> 決定互動 -> 世界回應",
+  "new_tables": [
+    "scene_nodes",
+    "scene_exits"
+  ],
+  "new_file": "assets/worldview-system.js",
+  "notes": "主畫面改回上方敘事、下方選項的簡潔排列；歷史訊息最新在上方，移動描述統一改為「移動」，並保留功能彈窗。"
 }
